@@ -9,8 +9,8 @@
             android:title="Engine_displacement"           
 			android:inputType="number"
 			android:maxLength="4"
-            android:key="Enginedisplacement" 
-            android:name="Enginedisplacement"/>
+            android:key="EngineDisplacement"
+            android:name="EngineDisplacement"/>
         <ListPreference
             android:key="FaceColor"
             android:name="FaceColor"
@@ -20,17 +20,17 @@
             android:entries="@array/FaceColor"
             android:entryValues="@array/FaceColorValues" />
         <ListPreference
-            android:key="DedectPids"
-            android:name="DedectPids"
-            android:title="Dedect Pids"
-            android:summary="Dedect available pids automaticaly and search sensors. Enable Pids will be disabled."
+            android:key="DetectPids"
+            android:name="DetectPids"
+            android:title="Detect Pids"
+            android:summary="Detect available Pids automaticaly and search sensors. Enable Pids will be disabled."
             android:defaultValue="1"
-            android:entries="@array/DedectPids"
-            android:entryValues="@array/DedectPidsValues" />
+            android:entries="@array/DetectPids"
+            android:entryValues="@array/DetectPidsValues" />
     </PreferenceCategory>
 
     <PreferenceCategory
-        android:title="Enable Specific Pids, Dedect Pids should be disabled."
+        android:title="Enable Specific Pids, Detect Pids should be disabled."
         android:key="enable_pids">
         <CheckBoxPreference android:title="ENGINE_RPM"
             android:defaultValue="true" android:summary="Pid : 010C"

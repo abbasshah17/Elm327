@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -34,6 +35,13 @@
         <activity android:name="com.obdelm327pro.Prefs"
             android:configChanges="keyboardHidden|orientation|screenSize"
             android:label="@string/action_settings"/>
+        <service
+            android:name=".service.Elm327ConnectionService"
+            android:description="@string/downloader_service_description"
+            android:enabled="true"
+            android:exported="false"
+
+            />
     </application>
 
 </manifest>

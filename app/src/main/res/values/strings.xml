@@ -41,4 +41,15 @@
      <string name="exit">Exit</string>
     <string name="set_odometer">Set Odometer</string>
     <string name="reset_trip">Reset Trip</string>
+
+    <!-- Service-->
+    <string name="downloader_service_description">This service ensures continuous and uninterrupted connection between ELM-327 and the application.</string>
+    <string name="elm_327_connection_notification_channel_name">ELM-327 Connection</string>
+    <string name="notification_title">ELM-327</string>
+    <string name="notification_content_ready">Ready</string>
+    <string name="wifi">Wifi</string>
+    <string name="bluetooth">Bluetooth</string>
+    <string name="notification_content_connected">Connected to %1$s.</string>
+    <string name="disconnect_btn">Disconnect</string>
+    <string name="dismiss_btn">Dismiss</string>
 </resources>

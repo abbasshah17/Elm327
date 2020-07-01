@@ -8,7 +8,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,6 +17,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
+
+import static com.obdelm327pro.service.Elm327ConnectionService.DEVICE_NAME;
+import static com.obdelm327pro.service.Elm327ConnectionService.TOAST;
+import static com.obdelm327pro.service.Message.MESSAGE_DEVICE_NAME;
+import static com.obdelm327pro.service.Message.MESSAGE_READ;
+import static com.obdelm327pro.service.Message.MESSAGE_STATE_CHANGE;
+import static com.obdelm327pro.service.Message.MESSAGE_TOAST;
+import static com.obdelm327pro.service.Message.MESSAGE_WRITE;
 
 /**
  * This class does all the work for setting up and managing Bluetooth
@@ -54,10 +61,9 @@ public class BluetoothService {
     /**
      * Constructor. Prepares a new BluetoothChat session.
      *
-     * @param context The UI Activity Context
      * @param handler A Handler to send messages back to the UI Activity
      */
-    public BluetoothService(Context context, Handler handler) {
+    public BluetoothService(Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
         mBTHandler = handler;
@@ -80,7 +86,7 @@ public class BluetoothService {
         mState = state;
 
         // Give the new state to the Handler so the UI Activity can update
-        mBTHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        mBTHandler.obtainMessage(MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
 
     /**
@@ -171,9 +177,9 @@ public class BluetoothService {
         mConnectedThread.start();
 
         // Send the name of the connected device back to the UI Activity
-        Message msg = mBTHandler.obtainMessage(MainActivity.MESSAGE_DEVICE_NAME);
+        Message msg = mBTHandler.obtainMessage(MESSAGE_DEVICE_NAME);
         Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.DEVICE_NAME, device.getName());
+        bundle.putString(DEVICE_NAME, device.getName());
         msg.setData(bundle);
         mBTHandler.sendMessage(msg);
 
@@ -226,9 +232,9 @@ public class BluetoothService {
      */
     private void connectionFailed() {
         // Send a failure message back to the Activity
-        Message msg = mBTHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
+        Message msg = mBTHandler.obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.TOAST, "Unable to connect bt device");
+        bundle.putString(TOAST, "Unable to connect bt device");
         msg.setData(bundle);
         mBTHandler.sendMessage(msg);
         setState(STATE_NONE);
@@ -242,9 +248,9 @@ public class BluetoothService {
      */
     private void connectionLost() {
         // Send a failure message back to the Activity
-        Message msg = mBTHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
+        Message msg = mBTHandler.obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.TOAST, "Bt device connection was lost");
+        bundle.putString(TOAST, "Bt device connection was lost");
         msg.setData(bundle);
         mBTHandler.sendMessage(msg);
 
@@ -403,7 +409,8 @@ public class BluetoothService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
-        String s, msg;
+        String s;
+        StringBuilder msg = new StringBuilder("");
 
         public ConnectedThread(BluetoothSocket socket, String socketType) {
             Log.d(TAG, "create ConnectedThread: " + socketType);
@@ -432,11 +439,11 @@ public class BluetoothService {
                     s = new String(buffer);
                     for (int i = 0; i < s.length(); i++) {
                         char x = s.charAt(i);
-                        msg = msg + x;
+                        msg = msg.append(x);
                         //if (x == 0x3e) {
-                        if (msg.contains(">")) {
-                            mBTHandler.obtainMessage(MainActivity.MESSAGE_READ, buffer.length, -1, msg).sendToTarget();
-                            msg = "";
+                        if (msg.indexOf(">") != -1) {
+                            mBTHandler.obtainMessage(MESSAGE_READ, buffer.length, -1, msg).sendToTarget();
+                            msg.setLength(0);
                         }
                     }
                     // Do something with the bytes read in. There are bytesRead bytes in tempBuffer.
@@ -451,12 +458,10 @@ public class BluetoothService {
 
         public void write(byte[] buffer) {
             try {
-
-                byte[] arrayOfBytes = buffer;
-                mmOutStream.write(arrayOfBytes);
+                mmOutStream.write(buffer);
                 mmOutStream.flush();
                 // Share the sent message back to the UI Activity
-                mBTHandler.obtainMessage(MainActivity.MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
+                mBTHandler.obtainMessage(MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
 
             } catch (IOException e) {
                 Log.e(TAG, "Exception during write", e);

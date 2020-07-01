@@ -1,12 +1,6 @@
 package com.obdelm327pro;
 
-/**
- * Created by tbiliyor on 12.01.2017.
- */
-
-import android.app.Activity;
 import android.app.AlertDialog;
-import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -21,10 +15,18 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
+
+import static com.obdelm327pro.service.Elm327ConnectionService.DEVICE_NAME;
+import static com.obdelm327pro.service.Elm327ConnectionService.TOAST;
+import static com.obdelm327pro.service.Message.MESSAGE_DEVICE_NAME;
+import static com.obdelm327pro.service.Message.MESSAGE_READ;
+import static com.obdelm327pro.service.Message.MESSAGE_STATE_CHANGE;
+import static com.obdelm327pro.service.Message.MESSAGE_TOAST;
+import static com.obdelm327pro.service.Message.MESSAGE_WRITE;
 
 public class ObdWifiManager {
 
@@ -33,10 +35,15 @@ public class ObdWifiManager {
     public static final int STATE_LISTEN = 1;     // now listening for incoming connections
     public static final int STATE_CONNECTING = 2; // now initiating an outgoing connection
     public static final int STATE_CONNECTED = 3;  // now connected to a remote device
+
+
     private static final String TAG = "OBDWifiManager";
-    private final Context mContext;
+
+
+    private final WeakReference<Context> mContext;
+
     private final HandlerThread mOBDThread;
-    private final Handler mWIFIHandler;
+    private final WeakReference<Handler> mWIFIHandler;
     private Socket mSocket;
     private boolean mConnecting = false;
     private WifiManager.WifiLock wifiLock;
@@ -51,13 +58,15 @@ public class ObdWifiManager {
     String deviceName = "Elm327";
     private ObdWifiManager.ConnectedThread mConnectedThread;
 
-    private class SocketTask extends AsyncTask<Void, Void, Boolean> {        ;
+    private class SocketTask extends AsyncTask<Void, Void, Boolean> {
+
         IOException ioException;
-        Context context;
+        WeakReference<Context> context;
+
         SocketTask(Context context) {
             super();
             this.ioException = null;
-            this.context = context;
+            this.context = new WeakReference<>(context);
         }
         @Override
         protected Boolean doInBackground(Void... params) {
@@ -70,11 +79,11 @@ public class ObdWifiManager {
                 mConnecting = false;
 
                 // Send the name of the connected device back to the UI Activity
-                Message msg = mWIFIHandler.obtainMessage(MainActivity.MESSAGE_DEVICE_NAME);
+                Message msg = mWIFIHandler.get().obtainMessage(MESSAGE_DEVICE_NAME);
                 Bundle bundle = new Bundle();
-                bundle.putString(MainActivity.DEVICE_NAME, deviceName);
+                bundle.putString(DEVICE_NAME, deviceName);
                 msg.setData(bundle);
-                mWIFIHandler.sendMessage(msg);
+                mWIFIHandler.get().sendMessage(msg);
 
                 if (mConnectedThread != null) {
                     mConnectedThread.cancel();
@@ -95,8 +104,12 @@ public class ObdWifiManager {
         @Override
         protected void onPostExecute(Boolean result) {
 
+            if (context.get() == null) {
+                return;
+            }
+
             if (this.ioException != null) {
-                new AlertDialog.Builder(context)
+                new AlertDialog.Builder(context.get())
                         .setTitle("An error occurrsed")
                         .setMessage(this.ioException.toString())
                         .setIcon(android.R.drawable.ic_dialog_alert)
@@ -104,28 +117,28 @@ public class ObdWifiManager {
             }
             else
             {
-                Toast.makeText(context,"Elm327 wifi connected...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context.get(),"Elm327 wifi connected...", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
     private void connectionFailed() {
         // Send a failure message back to the Activity
-        Message msg = mWIFIHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
+        Message msg = mWIFIHandler.get().obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.TOAST, "Unable to connect wifi device");
+        bundle.putString(TOAST, "Unable to connect wifi device");
         msg.setData(bundle);
-        mWIFIHandler.sendMessage(msg);
+        mWIFIHandler.get().sendMessage(msg);
         setState(STATE_NONE);
     }
 
     private void connectionLost() {
         // Send a failure message back to the Activity
-        Message msg = mWIFIHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
+        Message msg = mWIFIHandler.get().obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.TOAST, "Wifi device connection was lost");
+        bundle.putString(TOAST, "Wifi device connection was lost");
         msg.setData(bundle);
-        mWIFIHandler.sendMessage(msg);
+        mWIFIHandler.get().sendMessage(msg);
         setState(STATE_NONE);
     }
 
@@ -136,19 +149,19 @@ public class ObdWifiManager {
         if(!isConnected() && mConnecting)
         {
 
-            SocketTask task = new SocketTask(mContext);
+            SocketTask task = new SocketTask(mContext.get());
             task.execute();
         }
 
-        mWIFIHandler.postDelayed(mConnectRunnable, 10000);
+        mWIFIHandler.get().postDelayed(mConnectRunnable, 10000);
     }
 };
 
     public ObdWifiManager(Context context, Handler handler) {
-        this.mContext = context;
+        this.mContext = new WeakReference<>(context);
         mOBDThread = new HandlerThread("OBDII", Thread.NORM_PRIORITY);
         mOBDThread.start();
-        mWIFIHandler = handler;//new Handler(mOBDThread.getLooper());
+        mWIFIHandler = new WeakReference<>(handler);//new Handler(mOBDThread.getLooper());
     }
 
     public synchronized int getState() {
@@ -159,18 +172,18 @@ public class ObdWifiManager {
 
         mState = state;
         // Give the new state to the Handler so the UI Activity can update
-        mWIFIHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        mWIFIHandler.get().obtainMessage(MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
 
     public boolean connect() {
 
         setState(STATE_CONNECTING);
 
-        if (mConnecting || isConnected()) {
+        if (mConnecting || isConnected() || mContext.get() == null) {
             return false;
         }
 
-        WifiManager wifi = (WifiManager) mContext.getSystemService(Context.WIFI_SERVICE);
+        WifiManager wifi = (WifiManager) mContext.get().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         if (wifiLock == null) {
             this.wifiLock = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "HighPerf wifi lock");
         }
@@ -186,17 +199,17 @@ public class ObdWifiManager {
             mConnecting = true;
             deviceName = name.replace("\"","");
 
-            mWIFIHandler.removeCallbacksAndMessages(null);
-            mWIFIHandler.post(mConnectRunnable);
+            mWIFIHandler.get().removeCallbacksAndMessages(null);
+            mWIFIHandler.get().post(mConnectRunnable);
 
             return true;
         }
 
-        Message msg = mWIFIHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
+        Message msg = mWIFIHandler.get().obtainMessage(MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.TOAST, "Unable to connect wifi device");
+        bundle.putString(TOAST, "Unable to connect wifi device");
         msg.setData(bundle);
-        mWIFIHandler.sendMessage(msg);
+        mWIFIHandler.get().sendMessage(msg);
 
         setState(STATE_NONE);
 
@@ -209,9 +222,9 @@ public class ObdWifiManager {
         if (wifiLock != null && wifiLock.isHeld())
             wifiLock.release();
 
-        mWIFIHandler.removeCallbacksAndMessages(null);
+        mWIFIHandler.get().removeCallbacksAndMessages(null);
         mConnecting = false;
-        mWIFIHandler.post(new Runnable() {
+        mWIFIHandler.get().post(new Runnable() {
             @Override
             public void run() {
                 if (mSocket != null && mSocket.isConnected()) {
@@ -277,10 +290,9 @@ public class ObdWifiManager {
                 if(mSocket != null)
                 {
                     outStream = mSocket.getOutputStream();
-                    byte[] arrayOfBytes = buffer;
-                    outStream.write(arrayOfBytes);
+                    outStream.write(buffer);
                     outStream.flush();
-                    mWIFIHandler.obtainMessage(MainActivity.MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
+                    mWIFIHandler.get().obtainMessage(MESSAGE_WRITE, -1, -1, buffer).sendToTarget();
                 }
 
             } catch (Exception localIOException1) {
@@ -306,7 +318,7 @@ public class ObdWifiManager {
                             res.append((char) b);
                         }
                         rawData = res.toString().trim();
-                        mWIFIHandler.obtainMessage(MainActivity.MESSAGE_READ, rawData.length(), -1, rawData).sendToTarget();
+                        mWIFIHandler.get().obtainMessage(MESSAGE_READ, rawData.length(), -1, rawData).sendToTarget();
                     }
 
                 } catch (IOException localIOException) {
