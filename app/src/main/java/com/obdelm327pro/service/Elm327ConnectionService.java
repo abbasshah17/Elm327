@@ -61,6 +61,7 @@ public class Elm327ConnectionService extends Service {
     private static final int VOLTAGE_NOTIFICATION_ID = 6;
     private static final int AGGRESSIVE_DRIVING_NOTIFICATION_ID = 7;
     private static final int FUEL_CONSUMPTION_LOW_NOTIFICATION_ID = 8;
+    private static final int COOLANT_AIR_TEMP_HIGH_NOTIFICATION_ID = 9;
 
     private static final int DEFAULT_NOTIFICATION_ID = 101;
 
@@ -131,8 +132,8 @@ public class Elm327ConnectionService extends Service {
     private PowerManager.WakeLock wl;
 
     private String mConnectedDeviceName = "Ecu";
-    private int intakeAirTemp = 0, b1s1Temp = 0, engineType = 0,
-            whichCommand = 0, mDetect_PIDs = 0, connectCount = 0, tryCount = 0;
+    private SpeedAtTime lastSpeedAtTime;
+    private int whichCommand = 0, mDetect_PIDs = 0, connectCount = 0, tryCount = 0;
     private AirflowRate massAirflow;
     private int mEngineDisplacement = 1500;
 
@@ -930,6 +931,23 @@ public class Elm327ConnectionService extends Service {
                 // A-40
                 tempC = A - 40;
                 Temperature coolantTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
+
+                if (coolantTemp.getTemperature() > 110) {
+                    sendNotification(COOLANT_AIR_TEMP_HIGH_NOTIFICATION_ID,
+                            "Warning! Your Car is Overheated",
+                            "Engine Temperature is " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
+                }
+                else if (coolantTemp.getTemperature() > 107) {
+                    sendNotification(COOLANT_AIR_TEMP_HIGH_NOTIFICATION_ID,
+                            "Warning! Warning Car Heated",
+                            "Engine Temperature is " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
+                }
+                else if (coolantTemp.getTemperature() > 104) {
+                    sendNotification(COOLANT_AIR_TEMP_HIGH_NOTIFICATION_ID,
+                            "Warning! Your Car Engine Temperature is High",
+                            "Engine Temperature is " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
+                }
+
                 notifyCoolantTemperatureUpdate(coolantTemp);
                 notifyNewConversation("Engine Temp: " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
 
@@ -963,9 +981,29 @@ public class Elm327ConnectionService extends Service {
 
                 // A
                 Speed speed = new Speed(A);
-                if (speed.getSpeed() > 100) {
-                    sendNotification(AGGRESSIVE_DRIVING_NOTIFICATION_ID, "Warning! Aggressive Driving alert.", "Current Speed '" + speed.getSpeed() + "'.");
+                SpeedAtTime currentSpeedAtTime = new SpeedAtTime(System.currentTimeMillis(), speed);
+                /*lastFewSpeeds.offer(new SpeedAtTime(System.currentTimeMillis(), speed));
+
+                SpeedAtTime speedAtTime = lastFewSpeeds.peek();
+                if (speedAtTime != null) {
+                    Speed oldSpeed = speedAtTime.getSpeed();
+
+                    Log.d(TAG, "Old Speed: " + oldSpeed.getSpeed() + ", Current Speed : " + speed.getSpeed());
+
+                    if (speed.getSpeed() - oldSpeed.getSpeed() > (oldSpeed.getSpeed() * 4.5)) {
+                        sendNotification(AGGRESSIVE_DRIVING_NOTIFICATION_ID, "Warning! Aggressive Driving alert.", "Current Speed '" + speed.getSpeed() + "'.");
+                    }
+                }*/
+                if (lastSpeedAtTime != null) {
+                    if ((((double) lastSpeedAtTime.getSpeed().getSpeed() - speed.getSpeed())
+                            / Math.abs(lastSpeedAtTime.getTimeStamp() - currentSpeedAtTime.getTimeStamp()))
+                            > 4.5) {
+                        sendNotification(AGGRESSIVE_DRIVING_NOTIFICATION_ID, "Warning! Aggressive Driving alert.", "Current Speed '" + speed.getSpeed() + "'.");
+                    }
                 }
+
+                lastSpeedAtTime = currentSpeedAtTime;
+
                 notifySpeedUpdate(speed);
 
                 break;
@@ -975,6 +1013,9 @@ public class Elm327ConnectionService extends Service {
                 // A - 40
                 tempC = A - 40;
                 Temperature intakeAirTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
+                if (intakeAirTemp.getTemperature() > 139) {
+                    sendNotification(AIR_TEMP_NOTIFICATION_ID, "Warning! You Air Temperature is High.", "Currently at '" + intakeAirTemp.getTemperature() + "'.");
+                }
                 notifyIntakeTempUpdate(intakeAirTemp);
                 notifyNewConversation("Intake Air Temp: " + intakeAirTemp.getTemperature() + " " + intakeAirTemp.getUnit().value());
 
@@ -1034,9 +1075,6 @@ public class Elm327ConnectionService extends Service {
                 // A-40 [DegC]
                 tempC = A - 40;
                 Temperature ambientAirTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
-                if (ambientAirTemp.getTemperature() > 139) {
-                    sendNotification(AIR_TEMP_NOTIFICATION_ID, "Warning! You Air Temperature is High.", "Currently at '" + ambientAirTemp + "'.");
-                }
                 notifyNewConversation("Ambient Air Temp: " + ambientAirTemp.getTemperature() + " " + ambientAirTemp.getUnit().value());
 
                 break;
