@@ -38,12 +38,21 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.obdelm327pro.service.AirflowRate;
 import com.obdelm327pro.service.BluetoothConnectionNotEstablished;
 import com.obdelm327pro.service.BluetoothODBCallback;
 import com.obdelm327pro.service.BluetoothState;
+import com.obdelm327pro.service.DeviceInfo;
 import com.obdelm327pro.service.Elm327Callback;
 import com.obdelm327pro.service.Elm327ConnectionBinder;
 import com.obdelm327pro.service.Elm327ConnectionService;
+import com.obdelm327pro.service.EngineLoad;
+import com.obdelm327pro.service.FuelConsumption;
+import com.obdelm327pro.service.RPM;
+import com.obdelm327pro.service.Speed;
+import com.obdelm327pro.service.Temperature;
+import com.obdelm327pro.service.ThrottlePosition;
+import com.obdelm327pro.service.Voltage;
 import com.obdelm327pro.service.WifiODBCallback;
 import com.obdelm327pro.service.WifiState;
 
@@ -190,9 +199,10 @@ public class MainActivity extends AppCompatActivity {
     private class Elm327StatusUpdatesCallback implements Elm327Callback {
 
         @Override
-        public void onDeviceInfo(@NonNull String deviceInfo) {
+        public void onDeviceInfo(@NonNull DeviceInfo deviceInfo) {
             if (Status != null) {
-                Status.setText(deviceInfo);
+                String status = deviceInfo.getDeviceName() + " " + deviceInfo.getDeviceProtocol();
+                Status.setText(status);
             }
         }
 
@@ -218,63 +228,70 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onVoltageUpdate(@NonNull String voltage) {
+        public void onVoltageUpdate(@NonNull Voltage voltage) {
+            String voltageText = voltage.getVoltage() + voltage.getUnit();
             if (MainActivity.this.voltage != null) {
-                MainActivity.this.voltage.setText(voltage);
+                MainActivity.this.voltage.setText(voltageText);
             }
         }
 
         @Override
-        public void onEngineLoadUpdate(@NonNull String engineLoad) {
+        public void onEngineLoadUpdate(@NonNull EngineLoad engineLoad) {
             if (MainActivity.this.engineLoad != null) {
-                MainActivity.this.engineLoad.setText(engineLoad);
+                String engineLoadText = engineLoad.getEngineLoad() + "%";
+                MainActivity.this.engineLoad.setText(engineLoadText);
             }
         }
 
         @Override
-        public void onFuelConsumptionUpdate(@NonNull String fuelConsumption) {
+        public void onFuelConsumptionUpdate(@NonNull FuelConsumption fuelConsumption) {
             if (Fuel != null) {
-                Fuel.setText(fuelConsumption);
+                String fuelConsumptionText = String.format("%10.1f", fuelConsumption.getFuelConsumption()).trim() + " " + fuelConsumption.getUnit();
+                Fuel.setText(fuelConsumptionText);
             }
         }
 
         @Override
-        public void onCoolantTemperatureUpdate(@NonNull String coolantTemperature) {
+        public void onCoolantTemperatureUpdate(@NonNull Temperature coolantTemperature) {
             if (MainActivity.this.coolantTemperature != null) {
-                MainActivity.this.coolantTemperature.setText(coolantTemperature);
+                String coolantTempText = coolantTemperature.getTemperature() + " " + coolantTemperature.getUnit().value();
+                MainActivity.this.coolantTemperature.setText(coolantTempText);
             }
         }
 
         @Override
-        public void onRpmUpdate(int rpm) {
+        public void onRpmUpdate(@NonNull RPM rpm) {
             if (MainActivity.this.rpm != null) {
-                MainActivity.this.rpm.setTargetValue(rpm);
+                int transformedRpm = rpm.getRpm() / 100;
+                MainActivity.this.rpm.setTargetValue(transformedRpm);
             }
         }
 
         @Override
-        public void onSpeedUpdate(int speed) {
+        public void onSpeedUpdate(@NonNull Speed speed) {
             if (MainActivity.this.speed != null) {
-                MainActivity.this.speed.setTargetValue(speed);
+                MainActivity.this.speed.setTargetValue(speed.getSpeed());
             }
         }
 
         @Override
-        public void onIntakeTemperatureUpdate(@NonNull String intakeTemperature) {
+        public void onIntakeTemperatureUpdate(@NonNull Temperature intakeTemperature) {
             if (airTemperature != null) {
-                airTemperature.setText(intakeTemperature);
+                String intakeTempText = intakeTemperature.getTemperature() + " " + intakeTemperature.getUnit().value();
+                airTemperature.setText(intakeTempText);
             }
         }
 
         @Override
-        public void onMAF_AirFlowUpdate(@NonNull String mafAirflow) {
+        public void onMAF_AirFlowUpdate(@NonNull AirflowRate maf) {
             if (MAF != null) {
-                MAF.setText(mafAirflow);
+                String massAirflowRateText = maf.getAirflowRate() + " " + maf.getUnit();
+                MAF.setText(massAirflowRateText);
             }
         }
 
         @Override
-        public void onThrottlePositionUpdate(@NonNull String throttle) {
+        public void onThrottlePositionUpdate(@NonNull ThrottlePosition throttle) {
 
         }
     }

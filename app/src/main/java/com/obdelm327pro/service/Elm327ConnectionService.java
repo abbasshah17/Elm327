@@ -90,7 +90,8 @@ public class Elm327ConnectionService extends Service {
     BluetoothDevice currentDevice;
     boolean commandMode = false, initialized = false, m_getPIDs = false, tryConnect = false;
 
-    String deviceName = null, deviceProtocol = null;
+    private DeviceInfo deviceInfo;
+//    String deviceName = null, deviceProtocol = null;
 
     //ATZ reset all
     //ATDP Describe the current Protocol
@@ -130,10 +131,9 @@ public class Elm327ConnectionService extends Service {
     private PowerManager.WakeLock wl;
 
     private String mConnectedDeviceName = "Ecu";
-    private int rpmVal = 0, intakeAirTemp = 0, ambientAirTemp = 0, coolantTemp = 0,
-            engineOilTemp = 0, b1s1Temp = 0, engineType = 0,
+    private int intakeAirTemp = 0, b1s1Temp = 0, engineType = 0,
             whichCommand = 0, mDetect_PIDs = 0, connectCount = 0, tryCount = 0;
-    private double mMaf;
+    private AirflowRate massAirflow;
     private int mEngineDisplacement = 1500;
 
     private List<WeakReference<Elm327Callback>> mElm327Callbacks = null;
@@ -146,7 +146,7 @@ public class Elm327ConnectionService extends Service {
     private ObdWifiManager mWifiService = null;
 
 
-    private void notifyDeviceInfoUpdate(@NonNull String deviceInfo) {
+    private void notifyDeviceInfoUpdate(@NonNull DeviceInfo deviceInfo) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -186,7 +186,7 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifyVoltageUpdate(@NonNull String voltage) {
+    private void notifyVoltageUpdate(@NonNull Voltage voltage) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -196,7 +196,7 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifyEngineLoadUpdate(@NonNull String engineLoad) {
+    private void notifyEngineLoadUpdate(@NonNull EngineLoad engineLoad) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -206,7 +206,7 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifyFuelConsumptionUpdate(@NonNull String fuelConsumption) {
+    private void notifyFuelConsumptionUpdate(@NonNull FuelConsumption fuelConsumption) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -216,7 +216,7 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifyCoolantTemperatureUpdate(@NonNull String coolantTemp) {
+    private void notifyCoolantTemperatureUpdate(@NonNull Temperature coolantTemp) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -226,7 +226,7 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifyRpmUpdate(int rpm) {
+    private void notifyRpmUpdate(@NonNull RPM rpm) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -236,7 +236,7 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifySpeedUpdate(int speed) {
+    private void notifySpeedUpdate(Speed speed) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -246,7 +246,7 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifyIntakeTempUpdate(@NonNull String intakeTempUpdate) {
+    private void notifyIntakeTempUpdate(@NonNull Temperature intakeTempUpdate) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
@@ -256,22 +256,22 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-    private void notifyMAF_AirFlowUpdate(@NonNull String MAF_Airflow) {
+    private void notifyMAF_AirFlowUpdate(@NonNull AirflowRate massAirflow) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
             if (reference.get() != null) {
-                reference.get().onMAF_AirFlowUpdate(MAF_Airflow);
+                reference.get().onMAF_AirFlowUpdate(massAirflow);
             }
         }
     }
 
-    private void notifyThrottlePositionUpdate(@NonNull String throttlePostion) {
+    private void notifyThrottlePositionUpdate(@NonNull ThrottlePosition throttlePosition) {
         for (int i = 0; i < mElm327Callbacks.size(); i++) {
             WeakReference<Elm327Callback> reference = mElm327Callbacks.get(i);
 
             if (reference.get() != null) {
-                reference.get().onThrottlePositionUpdate(throttlePostion);
+                reference.get().onThrottlePositionUpdate(throttlePosition);
             }
         }
     }
@@ -550,12 +550,13 @@ public class Elm327ConnectionService extends Service {
                 sendNotification(VOLTAGE_NOTIFICATION_ID, "Warning! Your car battery voltage is low.",
                         "Current voltage is '" + VoltText + "'.");
             }
-            notifyVoltageUpdate(VoltText);
+            notifyVoltageUpdate(new Voltage(voltage));
         }
     }
 
     private void getElmInfo(String tmpmsg) {
 
+        String deviceName = null, deviceProtocol = null;
         if (tmpmsg.contains("ELM") || tmpmsg.contains("elm")) {
             deviceName = tmpmsg;
         }
@@ -568,7 +569,9 @@ public class Elm327ConnectionService extends Service {
         if (deviceProtocol != null && deviceName != null) {
             deviceName = deviceName.replaceAll("STOPPED", "");
             deviceProtocol = deviceProtocol.replaceAll("STOPPED", "");
-            notifyDeviceInfoUpdate(deviceName + " " + deviceProtocol);
+
+            deviceInfo = new DeviceInfo(deviceName, deviceProtocol);
+            notifyDeviceInfoUpdate(deviceInfo);
         }
     }
 
@@ -898,44 +901,45 @@ public class Elm327ConnectionService extends Service {
 
                 // A*100/255
                 val = (double) A * 100 / 255;
-                int engineLoad = (int) val;
+                EngineLoad engineLoad = new EngineLoad((int) val);
 
-                notifyEngineLoadUpdate(engineLoad + " %");
+                notifyEngineLoadUpdate(engineLoad);
                 notifyNewConversation("Engine Load: " + engineLoad + " %");
 
-                double FuelFlowLH = (mMaf * engineLoad * mEngineDisplacement / 1000.0 / 714.0) + 0.8;
+                double FuelFlowLH = (massAirflow.getAirflowRate() * engineLoad.getEngineLoad() * mEngineDisplacement / 1000.0 / 714.0) + 0.8;
 
-                if(engineLoad == 0)
+                if(engineLoad.getEngineLoad() == 0)
                     FuelFlowLH = 0;
 
                 avgConsumption.add(FuelFlowLH);
 
-                double fuelConsumption = calculateAverage(avgConsumption);
+                FuelConsumption avfFuelConsumption = new FuelConsumption(calculateAverage(avgConsumption));
 
-                if (fuelConsumption < 5) {
+                if (avfFuelConsumption.getFuelConsumption() < 5) {
                     sendNotification(FUEL_CONSUMPTION_LOW_NOTIFICATION_ID, "Warning! Your fuel " +
                             "consumption is Low.", "Your Mileage is '"
-                            + fuelConsumption + "'.");
+                            + avfFuelConsumption.getFuelConsumption() + " " + avfFuelConsumption.getUnit() + "'.");
                 }
 
-                notifyFuelConsumptionUpdate(String.format("%10.1f", fuelConsumption).trim() + " l/h");
-                notifyNewConversation("Fuel Consumption: " + String.format("%10.1f", fuelConsumption).trim() + " l/h");
+                notifyFuelConsumptionUpdate(avfFuelConsumption);
+                notifyNewConversation("Fuel Consumption: " + String.format("%10.1f", avfFuelConsumption.getFuelConsumption()).trim() + " l/h");
                 break;
 
             case 5://PID(05): Coolant Temperature
 
                 // A-40
                 tempC = A - 40;
-                coolantTemp = tempC;
-                notifyCoolantTemperatureUpdate(coolantTemp + " C°");
-                notifyNewConversation("Engine Temp: " + tempC + " C°");
+                Temperature coolantTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
+                notifyCoolantTemperatureUpdate(coolantTemp);
+                notifyNewConversation("Engine Temp: " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
 
                 break;
 
             case 11://PID(0B)
 
                 // A
-                notifyNewConversation("Intake Man Pressure: " + A + " kPa");
+                Pressure intakeManPressure = new Pressure(A);
+                notifyNewConversation("Intake Man Pressure: " + intakeManPressure.getPressure() + " " + intakeManPressure.getUnit());
 
                 break;
 
@@ -944,12 +948,12 @@ public class Elm327ConnectionService extends Service {
                 //((A*256)+B)/4
                 val = ((double) (A * 256) + B) / 4;
                 intVal = (int) val;
-                rpmVal = intVal;
+                RPM rpm = new RPM(intVal);
 
-                notifyRpmUpdate(intVal / 100);
+                notifyRpmUpdate(rpm);
 
                 if (intVal < 500) {
-                    sendNotification(RPM_NOTIFICATION_ID, "Warning! You Car Engined RPM is Low", "RPM is currently at " + rpmVal + ".");
+                    sendNotification(RPM_NOTIFICATION_ID, "Warning! You Car Engined RPM is Low", "RPM is currently at " + rpm.getRpm() + ".");
                 }
 
                 break;
@@ -958,10 +962,11 @@ public class Elm327ConnectionService extends Service {
             case 13://PID(0D): KM
 
                 // A
-                if (A > 100) {
-                    sendNotification(AGGRESSIVE_DRIVING_NOTIFICATION_ID, "Warning! Aggressive Driving alert.", "Current Speed '" + A + "'.");
+                Speed speed = new Speed(A);
+                if (speed.getSpeed() > 100) {
+                    sendNotification(AGGRESSIVE_DRIVING_NOTIFICATION_ID, "Warning! Aggressive Driving alert.", "Current Speed '" + speed.getSpeed() + "'.");
                 }
-                notifySpeedUpdate(A);
+                notifySpeedUpdate(speed);
 
                 break;
 
@@ -969,21 +974,29 @@ public class Elm327ConnectionService extends Service {
 
                 // A - 40
                 tempC = A - 40;
-                intakeAirTemp = tempC;
-                notifyIntakeTempUpdate(intakeAirTemp + " C°");
-                notifyNewConversation("Intake Air Temp: " + intakeAirTemp + " C°");
+                Temperature intakeAirTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
+                notifyIntakeTempUpdate(intakeAirTemp);
+                notifyNewConversation("Intake Air Temp: " + intakeAirTemp.getTemperature() + " " + intakeAirTemp.getUnit().value());
 
                 break;
 
             case 16://PID(10): Maf
 
                 // ((256*A)+B) / 100  [g/s]
-                mMaf = (((double) (256 * A) + B)) / 100;
-                if (mMaf < 0.5) {
-                    sendNotification(MAF_FLOW_NOTIFICATION_ID, "Warning! Your MAF sensor is not working fine.", "Maf Airflow is '" + mMaf + "'.");
+                double maf = (((double) (256 * A) + B)) / 100;
+
+                if (massAirflow == null) {
+                    massAirflow = new AirflowRate(maf);
                 }
-                notifyMAF_AirFlowUpdate(intVal + " g/s");
-                notifyNewConversation("Maf Air Flow: " + mMaf + " g/s");
+                else {
+                    massAirflow.airflowRate = maf;
+                }
+
+                if (massAirflow.airflowRate < 0.5) {
+                    sendNotification(MAF_FLOW_NOTIFICATION_ID, "Warning! Your MAF sensor is not working fine.", "Maf Airflow is '" + massAirflow.getAirflowRate() + " " + massAirflow.getUnit() + "'.");
+                }
+                notifyMAF_AirFlowUpdate(massAirflow);
+                notifyNewConversation("Maf Air Flow: " + massAirflow.getAirflowRate() + " " + massAirflow.getUnit());
 
                 break;
 
@@ -991,9 +1004,10 @@ public class Elm327ConnectionService extends Service {
 
                 //A*100/255
                 val = (double) A * 100 / 255;
-                intVal = (int) val;
-                notifyThrottlePositionUpdate(" Throttle position: " + intVal + " %");
-                notifyNewConversation(" Throttle position: " + intVal + " %");
+                ThrottlePosition throttlePosition = new ThrottlePosition((int) val);
+//                notifyThrottlePositionUpdate(" Throttle position: " + intVal + " %");
+                notifyThrottlePositionUpdate(throttlePosition);
+                notifyNewConversation(" Throttle position: " + throttlePosition.getThrottlePosition() + " %");
 
                 break;
 
@@ -1001,8 +1015,8 @@ public class Elm327ConnectionService extends Service {
 
                 // ((A*256)+B)*0.079
                 val = ((A * 256) + B) * 0.079;
-                intVal = (int) val;
-                notifyNewConversation("Fuel Rail Pressure: " + intVal + " kPa");
+                Pressure pressure = new Pressure((int) val);
+                notifyNewConversation("Fuel Rail Pressure: " + pressure.getPressure() + " " + pressure.getUnit());
 
                 break;
 
@@ -1010,8 +1024,8 @@ public class Elm327ConnectionService extends Service {
 
                 //(256*A)+B km
                 val = (A * 256) + B;
-                intVal = (int) val;
-                notifyNewConversation("Distance traveled: " + intVal + " km");
+                Distance distance = new Distance((int) val, Distance.Unit.KILO_METERS);
+                notifyNewConversation("Distance traveled: " + distance.getDistance() + " " + distance.getUnit().value());
 
                 break;
 
@@ -1019,11 +1033,11 @@ public class Elm327ConnectionService extends Service {
 
                 // A-40 [DegC]
                 tempC = A - 40;
-                ambientAirTemp = tempC;
-                if (ambientAirTemp > 139) {
+                Temperature ambientAirTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
+                if (ambientAirTemp.getTemperature() > 139) {
                     sendNotification(AIR_TEMP_NOTIFICATION_ID, "Warning! You Air Temperature is High.", "Currently at '" + ambientAirTemp + "'.");
                 }
-                notifyNewConversation("Ambient Air Temp: " + ambientAirTemp + " C°");
+                notifyNewConversation("Ambient Air Temp: " + ambientAirTemp.getTemperature() + " " + ambientAirTemp.getUnit().value());
 
                 break;
 
@@ -1031,8 +1045,8 @@ public class Elm327ConnectionService extends Service {
 
                 //A-40
                 tempC = A - 40;
-                engineOilTemp = tempC;
-                notifyNewConversation("Engine Oil Temp: " + engineOilTemp + " C°");
+                Temperature engineOilTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
+                notifyNewConversation("Engine Oil Temp: " + engineOilTemp.getTemperature() + " " + engineOilTemp.getUnit().value());
 
                 break;
 

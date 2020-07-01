@@ -4,7 +4,7 @@ import android.support.annotation.NonNull;
 
 public interface Elm327Callback {
 
-    void onDeviceInfo(@NonNull String deviceInfo);
+    void onDeviceInfo(@NonNull DeviceInfo deviceInfo);
 
     void onInfo(@NonNull String info);
 
@@ -12,21 +12,21 @@ public interface Elm327Callback {
 
     void toastMessage(@NonNull String message);
 
-    void onVoltageUpdate(@NonNull String voltage);
+    void onVoltageUpdate(@NonNull Voltage voltage);
 
-    void onEngineLoadUpdate(@NonNull String engineLoad);
+    void onEngineLoadUpdate(@NonNull EngineLoad engineLoad);
 
-    void onFuelConsumptionUpdate(@NonNull String fuelConsumption);
+    void onFuelConsumptionUpdate(@NonNull FuelConsumption fuelConsumption);
 
-    void onCoolantTemperatureUpdate(@NonNull String coolantTemperature);
+    void onCoolantTemperatureUpdate(@NonNull Temperature coolantTemperature);
 
-    void onRpmUpdate(int rpm);
+    void onRpmUpdate(@NonNull RPM rpm);
 
-    void onSpeedUpdate(int speed);
+    void onSpeedUpdate(@NonNull Speed speed);
 
-    void onIntakeTemperatureUpdate(@NonNull String intakeTemperature);
+    void onIntakeTemperatureUpdate(@NonNull Temperature intakeTemperature);
 
-    void onMAF_AirFlowUpdate(@NonNull String mafAirflow);
+    void onMAF_AirFlowUpdate(@NonNull AirflowRate maf);
 
-    void onThrottlePositionUpdate(@NonNull String throttle);
+    void onThrottlePositionUpdate(@NonNull ThrottlePosition throttle);
 }
