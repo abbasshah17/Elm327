@@ -4,9 +4,9 @@ android {
     compileSdkVersion 30
     buildToolsVersion "30.0.0"
     defaultConfig {
-        minSdkVersion 14
-        targetSdkVersion 28
         applicationId "com.elm327"
+        minSdkVersion 21
+        targetSdkVersion 30
         versionCode 31
         versionName "31.0"
         multiDexEnabled true
