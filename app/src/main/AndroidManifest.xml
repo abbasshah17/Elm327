@@ -40,7 +40,7 @@
             android:description="@string/downloader_service_description"
             android:enabled="true"
             android:exported="false"
-
+            android:foregroundServiceType="connectedDevice"
             />
     </application>
 

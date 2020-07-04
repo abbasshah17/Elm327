@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.ServiceInfo;
 import android.graphics.Color;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -41,6 +42,7 @@ import java.util.List;
 import static android.app.Notification.EXTRA_NOTIFICATION_ID;
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 import static android.os.Build.VERSION_CODES.O;
+import static android.os.Build.VERSION_CODES.Q;
 import static com.obdelm327pro.request.RequestCode.ACTIVITY_REQUEST_CODE;
 import static com.obdelm327pro.service.Message.MESSAGE_DEVICE_NAME;
 import static com.obdelm327pro.service.Message.MESSAGE_READ;
@@ -1175,10 +1177,10 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
-//    @RequiresApi(Q)
-//    private void startForegroundQ() {
-//        startForeground(NOTIFICATION_ID, getDefaultNotification(), FOREGROUND_SERVICE_TYPE_DATA_SYNC);
-//    }
+    @RequiresApi(Q)
+    private void startForegroundQ() {
+        startForeground(DEFAULT_NOTIFICATION_ID, getDefaultNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE);
+    }
 
     @RequiresApi(O)
     private void startForegroundO() {
@@ -1187,10 +1189,10 @@ public class Elm327ConnectionService extends Service {
 
     private void startForegroundCompat()
     {
-//        if (Build.VERSION.SDK_INT >= Q) {
-//            startForegroundQ();
-//        }
-        /*else*/ if (Build.VERSION.SDK_INT >= O) {
+        if (Build.VERSION.SDK_INT >= Q) {
+            startForegroundQ();
+        }
+        else if (Build.VERSION.SDK_INT >= O) {
             startForegroundO();
         }
     }
