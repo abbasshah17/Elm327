@@ -1492,7 +1492,7 @@ public class Elm327ConnectionService extends Service {
     }
 
     private boolean isBluetoothConnected() {
-        return mBtService != null && mBtService.getState() != BluetoothService.STATE_CONNECTED;
+        return mBtService != null && mBtService.getState() == BluetoothService.STATE_CONNECTED;
     }
 
     private void prepareBluetooth() {
