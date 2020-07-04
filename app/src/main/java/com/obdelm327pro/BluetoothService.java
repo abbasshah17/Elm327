@@ -442,7 +442,7 @@ public class BluetoothService {
                         msg = msg.append(x);
                         //if (x == 0x3e) {
                         if (msg.indexOf(">") != -1) {
-                            mBTHandler.obtainMessage(MESSAGE_READ, buffer.length, -1, msg).sendToTarget();
+                            mBTHandler.obtainMessage(MESSAGE_READ, buffer.length, -1, msg.toString()).sendToTarget();
                             msg.setLength(0);
                         }
                     }
