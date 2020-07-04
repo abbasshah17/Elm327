@@ -2,7 +2,8 @@ package com.obdelm327pro.service;
 
 import android.bluetooth.BluetoothDevice;
 import android.os.Binder;
-import android.support.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 public abstract class Elm327ConnectionBinder extends Binder {
 

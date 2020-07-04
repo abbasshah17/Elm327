@@ -14,12 +14,12 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
-import android.support.design.widget.AppBarLayout;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
@@ -38,6 +38,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.material.appbar.AppBarLayout;
 import com.obdelm327pro.service.AirflowRate;
 import com.obdelm327pro.service.BluetoothConnectionNotEstablished;
 import com.obdelm327pro.service.BluetoothODBCallback;
@@ -667,6 +668,8 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
         }
+
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     ///////////////////////////////////////////////////////////////////////

@@ -1,6 +1,6 @@
 package com.obdelm327pro.service;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 public interface WifiODBCallback {
 
