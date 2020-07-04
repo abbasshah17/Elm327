@@ -8,3 +8,4 @@
 /build
 /captures
 .externalNativeBuild
+elm327.keystore
