@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "227996452576",
+    "firebase_url": "https://elm-327.firebaseio.com",
+    "project_id": "elm-327",
+    "storage_bucket": "elm-327.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:227996452576:android:453662d30e7b12c5db7285",
+        "android_client_info": {
+          "package_name": "com.elm327"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "227996452576-c79lull2tec6p0e8km675fhflkke3tkp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.elm327",
+            "certificate_hash": "b779f29e9ec53b90038d998715c5359cd66b4000"
+          }
+        },
+        {
+          "client_id": "227996452576-tnshu9g480sj7tpr4f67kf4miasma4nh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyClvsk4-Bm2Tv_bx35WrVsvfy7niYNmvQ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "227996452576-tnshu9g480sj7tpr4f67kf4miasma4nh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
