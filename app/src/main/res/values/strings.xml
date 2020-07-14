@@ -51,5 +51,6 @@
     <string name="bluetooth">Bluetooth</string>
     <string name="notification_content_connected">Connected to %1$s.</string>
     <string name="disconnect_btn">Disconnect</string>
+    <string name="stop_btn">Stop</string>
     <string name="dismiss_btn">Dismiss</string>
 </resources>

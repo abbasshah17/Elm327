@@ -24,6 +24,7 @@ import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -43,6 +44,7 @@ import static android.app.Notification.EXTRA_NOTIFICATION_ID;
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 import static android.os.Build.VERSION_CODES.O;
 import static android.os.Build.VERSION_CODES.Q;
+import static androidx.core.app.NotificationCompat.DEFAULT_ALL;
 import static com.obdelm327pro.request.RequestCode.ACTIVITY_REQUEST_CODE;
 import static com.obdelm327pro.service.Message.MESSAGE_DEVICE_NAME;
 import static com.obdelm327pro.service.Message.MESSAGE_READ;
@@ -55,7 +57,21 @@ public class Elm327ConnectionService extends Service {
 
     private static final String TAG = "Elm327ConnectionService";
 
+    public static final String STOP_CONNECTION_SERVICE = "com.obdelm327pro.service.Elm327ConnectionService.stopService";
     public static final String DISCONNECT_CONNECTION_SERVICE = "com.obdelm327pro.service.Elm327ConnectionService.disconnectConnection";
+
+    public static final String[] RECEIVER_ACTIONS = {
+            STOP_CONNECTION_SERVICE,
+            DISCONNECT_CONNECTION_SERVICE
+    };
+
+    private static final int STOP_REQUEST_CODE = 2351;
+    private static final int DISCONNECT_REQUEST_CODE = 2352;
+
+    public static final int[] RECEIVER_REQUEST_CODES = {
+            STOP_REQUEST_CODE,
+            DISCONNECT_REQUEST_CODE
+    };
 
     private static final int SUMMARY_NOTIFICATION_ID = 1;
     private static final int RPM_NOTIFICATION_ID = 3;
@@ -70,6 +86,8 @@ public class Elm327ConnectionService extends Service {
 
     private String NOTIFICATION_CHANNEL_ID;
 
+
+    private boolean isServiceStopping = false;
 
     private Elm327ConnectionBinder binder = new MyElm327ConnectionBinder();
 
@@ -317,13 +335,28 @@ public class Elm327ConnectionService extends Service {
 
                     switch (msg.arg1) {
                         case ObdWifiManager.STATE_CONNECTED:
-                            getService().updateDefaultNotificationContent(getService().getString(R.string.notification_content_connected, getService().getString(R.string.wifi)));
+                            getService().isServiceStopping = false;
+
+                            getService().updateDefaultNotificationContent(
+                                    getService().getString(R.string.notification_content_connected, getService().getString(R.string.wifi)),
+                                    new int[] { R.drawable.disconnect_btn_white },
+                                    new String[] {getService().getString(R.string.disconnect_btn)},
+                                    new PendingIntent[] { getService().getDisconnectIntent() }
+                            );
                             getService().notifyWifiStateChanged(WifiState.STATE_CONNECTED);
                             break;
                         case ObdWifiManager.STATE_CONNECTING:
                             getService().notifyWifiStateChanged(WifiState.STATE_CONNECTING);
                             break;
                         case ObdWifiManager.STATE_NONE:
+                            if (!getService().isServiceStopping) {
+                                getService().updateDefaultNotificationContent(getService().getString(R.string.notification_content_ready),
+                                        new int[]{R.drawable.disconnect_btn_white},
+                                        new String[]{getService().getString(R.string.stop_btn)},
+                                        new PendingIntent[]{getService().getStopServiceIntent()}
+                                );
+                            }
+
                             if (getService().mWifiService != null) {
                                 getService().mWifiService.disconnect();
                             }
@@ -423,7 +456,13 @@ public class Elm327ConnectionService extends Service {
                     switch (msg.arg1) {
                         case BluetoothService.STATE_CONNECTED:
 
-                            getService().updateDefaultNotificationContent(getService().getString(R.string.notification_content_connected, getService().getString(R.string.bluetooth)));
+                            getService().isServiceStopping = false;
+
+                            getService().updateDefaultNotificationContent(getService().getString(R.string.notification_content_connected, getService().getString(R.string.bluetooth)),
+                                    new int[] { R.drawable.disconnect_btn_white },
+                                    new String[] {getService().getString(R.string.disconnect_btn)},
+                                    new PendingIntent[] { getService().getDisconnectIntent() }
+                            );
 
                             getService().notifyBluetoothStateChanged(BluetoothState.STATE_CONNECTED);
 
@@ -454,6 +493,14 @@ public class Elm327ConnectionService extends Service {
                             break;
 
                         case BluetoothService.STATE_NONE:
+
+                            if (!getService().isServiceStopping) {
+                                getService().updateDefaultNotificationContent(getService().getString(R.string.notification_content_ready),
+                                        new int[]{R.drawable.disconnect_btn_white},
+                                        new String[]{getService().getString(R.string.stop_btn)},
+                                        new PendingIntent[]{getService().getStopServiceIntent()}
+                                );
+                            }
 
                             getService().notifyBluetoothStateChanged(BluetoothState.STATE_NONE);
 
@@ -659,13 +706,13 @@ public class Elm327ConnectionService extends Service {
             mCoolantAirTempHeatedNotification = 107;
         }
 
-        String coolantAirTempOverheatedNotification = preferences.getString("editTextCOOLANT_AIR_TEMP_OVER_HEATED_NOTIFICATION_THRESHOLD", "110");
+        String coolantAirTempOverHeatedNotification = preferences.getString("editTextCOOLANT_AIR_TEMP_OVER_HEATED_NOTIFICATION_THRESHOLD", "110");
 
-        if (coolantAirTempOverheatedNotification != null) {
-            mCoolantAirTempHighNotification = Integer.parseInt(coolantAirTempOverheatedNotification);
+        if (coolantAirTempOverHeatedNotification != null) {
+            mCoolantAirTempOverHeatedNotification = Integer.parseInt(coolantAirTempOverHeatedNotification);
         }
         else {
-            mCoolantAirTempHighNotification = 110;
+            mCoolantAirTempOverHeatedNotification = 110;
         }
 
         String rPMNotificationThreshold = preferences.getString("editTextRPM_NOTIFICATION_THRESHOLD", "500");
@@ -1313,52 +1360,63 @@ public class Elm327ConnectionService extends Service {
     }
 
     private PendingIntent getDisconnectIntent() {
-        Intent stopIntent = new Intent(DISCONNECT_CONNECTION_SERVICE);
+        Intent disconnectIntent = new Intent(DISCONNECT_CONNECTION_SERVICE);
+
+        if (Build.VERSION.SDK_INT > O) {
+            disconnectIntent.putExtra(EXTRA_NOTIFICATION_ID, DEFAULT_NOTIFICATION_ID);
+        }
+
+        return PendingIntent.getBroadcast(this, DISCONNECT_REQUEST_CODE, disconnectIntent, 0);
+    }
+
+    private PendingIntent getStopServiceIntent() {
+        Intent stopIntent = new Intent(STOP_CONNECTION_SERVICE);
 
         if (Build.VERSION.SDK_INT > O) {
             stopIntent.putExtra(EXTRA_NOTIFICATION_ID, DEFAULT_NOTIFICATION_ID);
         }
 
-        return PendingIntent.getBroadcast(this, 0, stopIntent, 0);
-    }
+        return PendingIntent.getBroadcast(this, STOP_REQUEST_CODE, stopIntent, 0);
+     }
 
     private NotificationManager getNotificationManager() {
         return (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
     }
 
-    private void updateDefaultNotificationContent(String content) {
+    private void updateDefaultNotificationContent(String content, @DrawableRes int[] actionDrawables, String[] actionButtons, PendingIntent[] actionIntents) {
+        getNotificationManager().notify(DEFAULT_NOTIFICATION_ID, buildDefaultNotification(content, actionDrawables, actionButtons, actionIntents));
+    }
+
+    private Notification buildDefaultNotification(String content, @DrawableRes int[] actionDrawable, String[] actionButtons, PendingIntent[] actionIntents) {
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
 
-        notificationBuilder = notificationBuilder
-                .setSmallIcon(R.drawable.ic_launcher)
+        notificationBuilder = notificationBuilder.setOngoing(true)
                 .setContentTitle(getString(R.string.notification_title))
                 .setContentText(content)
-                .setContentIntent(PendingIntent.getActivity(getApplicationContext(), ACTIVITY_REQUEST_CODE, getAppIntent(), FLAG_UPDATE_CURRENT))
-                .addAction(R.drawable.disconnect_btn_white, getString(R.string.disconnect_btn), getDisconnectIntent());
+                .setContentIntent(PendingIntent.getActivity(getApplicationContext(), ACTIVITY_REQUEST_CODE, getAppIntent(), FLAG_UPDATE_CURRENT));
 
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
             notificationBuilder = notificationBuilder.setPriority(NotificationManager.IMPORTANCE_HIGH);
         }
 
-        getNotificationManager().notify(DEFAULT_NOTIFICATION_ID, notificationBuilder.build());
-    }
-
-    private Notification getDefaultNotification() {
-        NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
-
-        notificationBuilder = notificationBuilder.setOngoing(true)
-                .setContentTitle(getString(R.string.notification_title))
-                .setContentText(getString(R.string.notification_content_ready));
-
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N) {
-            notificationBuilder = notificationBuilder.setPriority(NotificationManager.IMPORTANCE_HIGH);
+        for (int i = 0; i < actionButtons.length; i++) {
+            notificationBuilder = notificationBuilder.addAction(actionDrawable[i], actionButtons[i], actionIntents[i]);
         }
 
         return notificationBuilder.setCategory(Notification.CATEGORY_SERVICE)
                 .setSmallIcon(R.drawable.ic_launcher)
                 .setContentIntent(PendingIntent.getActivity(getApplicationContext(), ACTIVITY_REQUEST_CODE, getAppIntent(), FLAG_UPDATE_CURRENT))
-                .addAction(R.drawable.disconnect_btn_white, getString(R.string.disconnect_btn), getDisconnectIntent())
                 .build();
+    }
+
+    private Notification getDefaultNotification() {
+
+        return buildDefaultNotification(
+                getString(R.string.notification_content_ready),
+                new int[] { R.drawable.disconnect_btn_white },
+                new String[] { getString(R.string.stop_btn) },
+                new PendingIntent[] { getStopServiceIntent() }
+        );
     }
 
     private boolean isGroupNotificationCreated = false;
@@ -1383,11 +1441,11 @@ public class Elm327ConnectionService extends Service {
 
             Notification notification = notificationBuilder.setCategory(Notification.CATEGORY_SERVICE)
                     .setSmallIcon(R.drawable.ic_launcher)
-                    .setSound(soundUri)
                     .setContentIntent(PendingIntent.getActivity(getApplicationContext(), ACTIVITY_REQUEST_CODE, getAppIntent(), FLAG_UPDATE_CURRENT))
                     .setGroup(GROUP_KEY_WORK_EMAIL)
                     .setGroupSummary(true)
                     .setAutoCancel(false)
+                    .setDefaults(DEFAULT_ALL)
                     .build();
 
             getNotificationManager().notify(SUMMARY_NOTIFICATION_ID, notification);
@@ -1428,25 +1486,36 @@ public class Elm327ConnectionService extends Service {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            unregisterReceiver(serviceBroadCastReceiver);
 
-            if (mBluetoothOdbCallbacks != null) {
-                mBluetoothOdbCallbacks.clear();
+            String intentAction = intent.getAction();
+
+            Log.d(TAG, "Intent Received, Action: " + intentAction);
+
+            if (intentAction == null || TextUtils.isEmpty(intentAction)) {
+                return;
             }
 
-            if (mWifiOdbCallbacks != null) {
-                mWifiOdbCallbacks.clear();
+            switch (intentAction) {
+                case DISCONNECT_CONNECTION_SERVICE: {
+
+                    binder.disconnectAllConnectionServices();
+
+                    break;
+                }
+
+                case STOP_CONNECTION_SERVICE: {
+
+                    isServiceStopping = true;
+
+                    binder.disconnectAllConnectionServices();
+
+                    stopForeground();
+
+                    stopSelf();
+
+                    break;
+                }
             }
-
-            if (mElm327Callbacks != null) {
-                mElm327Callbacks.clear();
-            }
-
-            binder.disconnectAllConnectionServices();
-
-            stopForeground();
-
-            stopSelf();
         }
     }
 
@@ -1468,7 +1537,12 @@ public class Elm327ConnectionService extends Service {
             startForeground(DEFAULT_NOTIFICATION_ID, getDefaultNotification());
         }
 
-        IntentFilter intentFilter = new IntentFilter(DISCONNECT_CONNECTION_SERVICE);
+        IntentFilter intentFilter = new IntentFilter();
+
+        for (String action: RECEIVER_ACTIONS) {
+            intentFilter.addAction(action);
+        }
+
         registerReceiver(serviceBroadCastReceiver, intentFilter);
     }
 
@@ -1526,20 +1600,6 @@ public class Elm327ConnectionService extends Service {
 
         switch (action) {
             case DISCONNECT_CONNECTION_SERVICE: {
-
-                unregisterReceiver(serviceBroadCastReceiver);
-
-                if (mBluetoothOdbCallbacks != null) {
-                    mBluetoothOdbCallbacks.clear();
-                }
-
-                if (mWifiOdbCallbacks != null) {
-                    mWifiOdbCallbacks.clear();
-                }
-
-                if (mElm327Callbacks != null) {
-                    mElm327Callbacks.clear();
-                }
 
                 binder.disconnectAllConnectionServices();
 
@@ -1646,6 +1706,7 @@ public class Elm327ConnectionService extends Service {
 
         @Override
         public void connectWifi() {
+            isServiceStopping = false;
             Elm327ConnectionService.this.connectWifi();
         }
 
@@ -1715,6 +1776,7 @@ public class Elm327ConnectionService extends Service {
 
         @Override
         public void connectBlueTooth(BluetoothDevice device) {
+            isServiceStopping = false;
             Elm327ConnectionService.this.connectBluetooth(device);
         }
 
