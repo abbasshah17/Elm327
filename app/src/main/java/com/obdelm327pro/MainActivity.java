@@ -698,9 +698,9 @@ public class MainActivity extends AppCompatActivity {
 
         unbindFromService();
 
-        if (connectionService != null) connectionService.disconnectAllConnectionServices();
+//        if (connectionService != null) connectionService.disconnectAllConnectionServices();
 
-        wl.release();
+//        wl.release();
     }
 
     @Override
