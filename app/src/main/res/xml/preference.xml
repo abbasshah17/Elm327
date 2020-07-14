@@ -5,7 +5,7 @@
         android:key="first_category">  
         <EditTextPreference
             android:summary="Define your Engine displacement"
-            android:defaultValue="1400"
+            android:defaultValue="1500"
             android:title="Engine_displacement"           
 			android:inputType="number"
 			android:maxLength="4"
@@ -50,6 +50,43 @@
         <CheckBoxPreference android:title="MAF_AIR_FLOW"
             android:defaultValue="true" android:summary="Pid : 0110"
             android:key="checkboxMAF_AIR_FLOW" />
+        <CheckBoxPreference android:title="AMBIENT_AIR_TEMP"
+            android:defaultValue="true" android:summary="Pid : 0146"
+            android:key="checkboxAMBIENT_AIR_TEMP" />
+        <CheckBoxPreference android:title="ENGINE_OIL_TEMP"
+            android:defaultValue="true" android:summary="Pid : 015C"
+            android:key="checkboxENGINE_OIL_TEMP" />
+    </PreferenceCategory>
 
+    <PreferenceCategory
+        android:title="Set/Change thresholds for notifications"
+        android:key="notification_threshold_defaults">
+        <EditTextPreference android:title="VOLTAGE_NOTIFICATION_THRESHOLD"
+            android:defaultValue="12" android:summary="Generates a notification when Battery Voltage is below the threshold."
+            android:key="editTextVOLTAGE_NOTIFICATION_THRESHOLD" android:inputType="number" />
+        <EditTextPreference android:title="FUEL_CONSUMPTION_LOW_NOTIFICATION_THRESHOLD"
+            android:defaultValue="5" android:summary="Generates a notification when Fuel Consumption is below the threshold."
+            android:key="editTextFUEL_CONSUMPTION_LOW_NOTIFICATION_THRESHOLD" android:inputType="number" />
+        <EditTextPreference android:title="COOLANT_AIR_TEMP_OVER_HEATED_NOTIFICATION_THRESHOLD"
+            android:defaultValue="110" android:summary="Generates a notification when Coolant Air Temperature is above the threshold."
+            android:key="editTextCOOLANT_AIR_TEMP_OVER_HEATED_NOTIFICATION_THRESHOLD" android:inputType="number" />
+        <EditTextPreference android:title="COOLANT_AIR_TEMP_HIGH_NOTIFICATION_THRESHOLD"
+            android:defaultValue="107" android:summary="Generates a notification when Coolant Air Temperature is above the threshold."
+            android:key="editTextCOOLANT_AIR_TEMP_HEATED_NOTIFICATION_THRESHOLD" android:inputType="number" />
+        <EditTextPreference android:title="COOLANT_AIR_TEMP_HEATED_NOTIFICATION_THRESHOLD"
+            android:defaultValue="104" android:summary="Generates a notification when Coolant Air Temperature is above the threshold."
+            android:key="editTextCOOLANT_AIR_TEMP_HIGH_NOTIFICATION_THRESHOLD" android:inputType="number" />
+        <EditTextPreference android:title="RPM_NOTIFICATION_THRESHOLD"
+            android:defaultValue="500" android:summary="Generates a notification when Engine RPM gets below the threshold."
+            android:key="editTextRPM_NOTIFICATION_THRESHOLD" android:inputType="number" />
+        <EditTextPreference android:title="AGGRESSIVE_DRIVING_NOTIFICATION_THRESHOLD"
+            android:defaultValue="4.5" android:summary="Generates a notification when Aggressive/Rash driving is detected which is determined by this delta rate."
+            android:key="editTextAGGRESSIVE_DRIVING_NOTIFICATION" android:inputType="numberDecimal" />
+        <EditTextPreference android:title="AIR_TEMP_NOTIFICATION_THRESHOLD"
+            android:defaultValue="139" android:summary="Generates a notification when Air Temperature is above the threshold."
+            android:key="editTextAIR_TEMP_NOTIFICATION" android:inputType="number" />
+        <EditTextPreference android:title="MAF_NOTIFICATION_THRESHOLD"
+            android:defaultValue="0.5" android:summary="Generates a notification when MAF Temperature is above the threshold."
+            android:key="editTextMAF_NOTIFICATION" android:inputType="numberDecimal" />
     </PreferenceCategory>
 </PreferenceScreen>

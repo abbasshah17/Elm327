@@ -140,6 +140,13 @@ public class Elm327ConnectionService extends Service {
     private AirflowRate massAirflow;
     private int mEngineDisplacement = 1500;
 
+    private int mVoltageNotificationThreshold, mFuelConsumptionLowNotificationThreshold,
+            mCoolantAirTempHighNotification, mCoolantAirTempHeatedNotification,
+            mCoolantAirTempOverHeatedNotification, mRPMNotificationThreshold,
+            mAirTempNotificationThreshold;
+
+    private double mMAFNotificationThreshold, mAggressiveDrivingNotificationThreshold;
+
     private List<WeakReference<Elm327Callback>> mElm327Callbacks = null;
 
     private List<WeakReference<BluetoothODBCallback>> mBluetoothOdbCallbacks = null;
@@ -550,7 +557,7 @@ public class Elm327ConnectionService extends Service {
         if (VoltText != null) {
             Log.d(TAG, "Voltage: " + VoltText);
             double voltage = Double.parseDouble(VoltText.substring(0, VoltText.indexOf('V')));
-            if (voltage < 12) {
+            if (voltage < mVoltageNotificationThreshold) {
                 sendNotification(VOLTAGE_NOTIFICATION_ID, "Warning! Your car battery voltage is low.",
                         "Current voltage is '" + VoltText + "'.");
             }
@@ -612,6 +619,92 @@ public class Elm327ConnectionService extends Service {
         }
     }
 
+    private void loadNotificationDefaults() {
+        SharedPreferences preferences = PreferenceManager
+                .getDefaultSharedPreferences(getBaseContext());
+
+        String voltageNotificationThreshold = preferences.getString("editTextVOLTAGE_NOTIFICATION_THRESHOLD", "12");
+
+        if (voltageNotificationThreshold != null) {
+            mVoltageNotificationThreshold = Integer.parseInt(voltageNotificationThreshold);
+        }
+        else {
+            mVoltageNotificationThreshold = 12;
+        }
+
+        String fuelConsumptionLowNotificationThreshold = preferences.getString("editTextFUEL_CONSUMPTION_LOW_NOTIFICATION_THRESHOLD", "5");
+
+        if (fuelConsumptionLowNotificationThreshold != null) {
+            mFuelConsumptionLowNotificationThreshold = Integer.parseInt(fuelConsumptionLowNotificationThreshold);
+        }
+        else {
+            mFuelConsumptionLowNotificationThreshold = 5;
+        }
+
+        String coolantAirTempHighNotification = preferences.getString("editTextCOOLANT_AIR_TEMP_HIGH_NOTIFICATION_THRESHOLD", "104");
+
+        if (coolantAirTempHighNotification != null) {
+            mCoolantAirTempHighNotification = Integer.parseInt(coolantAirTempHighNotification);
+        }
+        else {
+            mCoolantAirTempHighNotification = 104;
+        }
+
+        String coolantAirTempHeatedNotification = preferences.getString("editTextCOOLANT_AIR_TEMP_HEATED_NOTIFICATION_THRESHOLD", "107");
+
+        if (coolantAirTempHeatedNotification != null) {
+            mCoolantAirTempHeatedNotification = Integer.parseInt(coolantAirTempHeatedNotification);
+        }
+        else {
+            mCoolantAirTempHeatedNotification = 107;
+        }
+
+        String coolantAirTempOverheatedNotification = preferences.getString("editTextCOOLANT_AIR_TEMP_OVER_HEATED_NOTIFICATION_THRESHOLD", "110");
+
+        if (coolantAirTempOverheatedNotification != null) {
+            mCoolantAirTempHighNotification = Integer.parseInt(coolantAirTempOverheatedNotification);
+        }
+        else {
+            mCoolantAirTempHighNotification = 110;
+        }
+
+        String rPMNotificationThreshold = preferences.getString("editTextRPM_NOTIFICATION_THRESHOLD", "500");
+
+        if (rPMNotificationThreshold != null) {
+            mRPMNotificationThreshold = Integer.parseInt(rPMNotificationThreshold);
+        }
+        else {
+            mRPMNotificationThreshold = 500;
+        }
+
+        String aggressiveDrivingNotificationThreshold = preferences.getString("editTextAGGRESSIVE_DRIVING_NOTIFICATION", "4.5");
+
+        if (aggressiveDrivingNotificationThreshold != null) {
+            mAggressiveDrivingNotificationThreshold = Double.parseDouble(aggressiveDrivingNotificationThreshold);
+        }
+        else {
+            mAggressiveDrivingNotificationThreshold = 4.5;
+        }
+
+        String airTempNotificationThreshold = preferences.getString("editTextAIR_TEMP_NOTIFICATION", "139");
+
+        if (airTempNotificationThreshold != null) {
+            mAirTempNotificationThreshold = Integer.parseInt(airTempNotificationThreshold);
+        }
+        else {
+            mAirTempNotificationThreshold = 139;
+        }
+
+        String mafNotificationThreshold = preferences.getString("editTextMAF_NOTIFICATION", "0.5");
+
+        if (mafNotificationThreshold != null) {
+            mMAFNotificationThreshold = Double.parseDouble(mafNotificationThreshold);
+        }
+        else {
+            mMAFNotificationThreshold = 0.5;
+        }
+    }
+
     private void loadDefaultCommands() {
 
         SharedPreferences preferences = PreferenceManager
@@ -642,8 +735,13 @@ public class Elm327ConnectionService extends Service {
                 i++;
             }
 
-            commandsList.add(i++, AMBIENT_AIR_TEMP);
-            commandsList.add(i++, ENGINE_OIL_TEMP);
+            if (preferences.getBoolean("checkboxAMBIENT_AIR_TEMP", true)) {
+                commandsList.add(i++, AMBIENT_AIR_TEMP);
+            }
+
+            if (preferences.getBoolean("checkboxENGINE_OIL_TEMP", true)) {
+                commandsList.add(i++, ENGINE_OIL_TEMP);
+            }
 
             if (preferences.getBoolean("checkboxVEHICLE_SPEED", true)) {
                 commandsList.add(i, VEHICLE_SPEED);
@@ -919,7 +1017,7 @@ public class Elm327ConnectionService extends Service {
 
                 FuelConsumption avfFuelConsumption = new FuelConsumption(calculateAverage(avgConsumption));
 
-                if (avfFuelConsumption.getFuelConsumption() < 5) {
+                if (avfFuelConsumption.getFuelConsumption() < mFuelConsumptionLowNotificationThreshold) {
                     sendNotification(FUEL_CONSUMPTION_LOW_NOTIFICATION_ID, "Warning! Your fuel " +
                             "consumption is Low.", "Your Mileage is '"
                             + avfFuelConsumption.getFuelConsumption() + " " + avfFuelConsumption.getUnit() + "'.");
@@ -935,17 +1033,17 @@ public class Elm327ConnectionService extends Service {
                 tempC = A - 40;
                 Temperature coolantTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
 
-                if (coolantTemp.getTemperature() > 110) {
+                if (coolantTemp.getTemperature() > mCoolantAirTempOverHeatedNotification) {
                     sendNotification(COOLANT_AIR_TEMP_HIGH_NOTIFICATION_ID,
                             "Warning! Your Car is Overheated",
                             "Engine Temperature is " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
                 }
-                else if (coolantTemp.getTemperature() > 107) {
+                else if (coolantTemp.getTemperature() > mCoolantAirTempHeatedNotification) {
                     sendNotification(COOLANT_AIR_TEMP_HIGH_NOTIFICATION_ID,
                             "Warning! Warning Car Heated",
                             "Engine Temperature is " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
                 }
-                else if (coolantTemp.getTemperature() > 104) {
+                else if (coolantTemp.getTemperature() > mCoolantAirTempHighNotification) {
                     sendNotification(COOLANT_AIR_TEMP_HIGH_NOTIFICATION_ID,
                             "Warning! Your Car Engine Temperature is High",
                             "Engine Temperature is " + coolantTemp.getTemperature() + " " + coolantTemp.getUnit().value());
@@ -973,7 +1071,7 @@ public class Elm327ConnectionService extends Service {
 
                 notifyRpmUpdate(rpm);
 
-                if (intVal < 500) {
+                if (intVal < mRPMNotificationThreshold) {
                     sendNotification(RPM_NOTIFICATION_ID, "Warning! You Car Engined RPM is Low", "RPM is currently at " + rpm.getRpm() + ".");
                 }
 
@@ -1000,7 +1098,7 @@ public class Elm327ConnectionService extends Service {
                 if (lastSpeedAtTime != null) {
                     if ((((double) lastSpeedAtTime.getSpeed().getSpeed() - speed.getSpeed())
                             / Math.abs(lastSpeedAtTime.getTimeStamp() - currentSpeedAtTime.getTimeStamp()))
-                            > 4.5) {
+                            > mAggressiveDrivingNotificationThreshold) {
                         sendNotification(AGGRESSIVE_DRIVING_NOTIFICATION_ID, "Warning! Aggressive Driving alert.", "Current Speed '" + speed.getSpeed() + "'.");
                     }
                 }
@@ -1016,7 +1114,7 @@ public class Elm327ConnectionService extends Service {
                 // A - 40
                 tempC = A - 40;
                 Temperature intakeAirTemp = new Temperature(tempC, Temperature.Unit.CELSIUS);
-                if (intakeAirTemp.getTemperature() > 139) {
+                if (intakeAirTemp.getTemperature() > mAirTempNotificationThreshold) {
                     sendNotification(AIR_TEMP_NOTIFICATION_ID, "Warning! You Air Temperature is High.", "Currently at '" + intakeAirTemp.getTemperature() + "'.");
                 }
                 notifyIntakeTempUpdate(intakeAirTemp);
@@ -1036,7 +1134,7 @@ public class Elm327ConnectionService extends Service {
                     massAirflow.airflowRate = maf;
                 }
 
-                if (massAirflow.airflowRate < 0.5) {
+                if (massAirflow.airflowRate < mMAFNotificationThreshold) {
                     sendNotification(MAF_FLOW_NOTIFICATION_ID, "Warning! Your MAF sensor is not working fine.", "Maf Airflow is '" + massAirflow.getAirflowRate() + " " + massAirflow.getUnit() + "'.");
                 }
                 notifyMAF_AirFlowUpdate(massAirflow);
@@ -1356,6 +1454,8 @@ public class Elm327ConnectionService extends Service {
     public void onCreate()
     {
         Log.d(TAG, "Created.");
+
+        loadNotificationDefaults();
 
         loadDefaultCommands();
 
