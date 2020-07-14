@@ -13,6 +13,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ServiceInfo;
 import android.graphics.Color;
+import android.media.AudioAttributes;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
@@ -1348,6 +1349,13 @@ public class Elm327ConnectionService extends Service {
         String channelName = getString(R.string.elm_327_connection_notification_channel_name);
         NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
         chan.setLightColor(Color.GREEN);
+        AudioAttributes att = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+        chan.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM), att);
+        chan.enableLights(true);
+        chan.enableVibration(true);
         chan.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
         getNotificationManager().createNotificationChannel(chan);
@@ -1426,7 +1434,7 @@ public class Elm327ConnectionService extends Service {
         if (!isGroupNotificationCreated) {
             NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
 
-            notificationBuilder = notificationBuilder.setOngoing(true)
+            notificationBuilder = notificationBuilder
                     .setContentTitle(title)
                     .setContentText(messageContent);
 
@@ -1439,13 +1447,15 @@ public class Elm327ConnectionService extends Service {
 
             String GROUP_KEY_WORK_EMAIL = "com.android.example.WORK_EMAIL";
 
+            int notificationDefaults = Notification.DEFAULT_SOUND | Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE;;
+
             Notification notification = notificationBuilder.setCategory(Notification.CATEGORY_SERVICE)
                     .setSmallIcon(R.drawable.ic_launcher)
+                    .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM))
                     .setContentIntent(PendingIntent.getActivity(getApplicationContext(), ACTIVITY_REQUEST_CODE, getAppIntent(), FLAG_UPDATE_CURRENT))
                     .setGroup(GROUP_KEY_WORK_EMAIL)
                     .setGroupSummary(true)
                     .setAutoCancel(false)
-                    .setDefaults(DEFAULT_ALL)
                     .build();
 
             getNotificationManager().notify(SUMMARY_NOTIFICATION_ID, notification);
@@ -1455,7 +1465,7 @@ public class Elm327ConnectionService extends Service {
 
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID);
 
-        notificationBuilder = notificationBuilder.setOngoing(true)
+        notificationBuilder = notificationBuilder
                 .setContentTitle(title)
                 .setContentText(messageContent);
 
@@ -1463,7 +1473,7 @@ public class Elm327ConnectionService extends Service {
             notificationBuilder = notificationBuilder.setPriority(NotificationManager.IMPORTANCE_HIGH);
         }
 
-        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
 
 
         String GROUP_KEY_WORK_EMAIL = "com.android.example.WORK_EMAIL";
@@ -1472,7 +1482,6 @@ public class Elm327ConnectionService extends Service {
                 .setSmallIcon(R.drawable.ic_launcher)
                 .setSound(soundUri)
                 .setContentIntent(PendingIntent.getActivity(getApplicationContext(), ACTIVITY_REQUEST_CODE, getAppIntent(), FLAG_UPDATE_CURRENT))
-                .addAction(R.drawable.disconnect_btn_white, getString(R.string.dismiss_btn), getDisconnectIntent())
                 .setGroup(GROUP_KEY_WORK_EMAIL)
                 .setAutoCancel(false)
                 .build();
