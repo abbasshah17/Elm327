@@ -46,7 +46,6 @@ import static android.app.Notification.EXTRA_NOTIFICATION_ID;
 import static android.app.PendingIntent.FLAG_UPDATE_CURRENT;
 import static android.os.Build.VERSION_CODES.O;
 import static android.os.Build.VERSION_CODES.Q;
-import static androidx.core.app.NotificationCompat.DEFAULT_ALL;
 import static com.obdelm327pro.request.RequestCode.ACTIVITY_REQUEST_CODE;
 import static com.obdelm327pro.service.Message.MESSAGE_DEVICE_NAME;
 import static com.obdelm327pro.service.Message.MESSAGE_READ;
