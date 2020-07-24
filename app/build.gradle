@@ -9,8 +9,8 @@ android {
         applicationId "com.elm327"
         minSdkVersion 21
         targetSdkVersion 30
-        versionCode 311
-        versionName "31.1"
+        versionCode 312
+        versionName "31.2"
         multiDexEnabled true
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
