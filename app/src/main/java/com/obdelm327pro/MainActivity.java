@@ -790,8 +790,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void settextsixe() {
-        int txtsize = 14;
-        int sttxtsize = 12;
+        int txtsize = 16;
+        int sttxtsize = 14;
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindow().getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
